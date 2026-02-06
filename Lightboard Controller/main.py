@@ -33,7 +33,7 @@ class Board():
 		Board.port_opened = False
 		print("Connection Closed.")
 
-	def transmit(bts, print_payload=True):
+	def transmit(bts, print_payload=False):
 		if not Board.port_opened:
 			Board.open_port()
 		if print_payload:
@@ -63,10 +63,8 @@ class Board():
 		if Board.color_size >= 7:
 			raise Exception("Palette Too Large.")
 		header = struct.pack("BB",
-				(
-					(0b01 << 3) | # OP code 1
-					(Board.color_size)
-				) << 3,
+				(0b01000000) | # OP code 1
+				(Board.color_size) << 3,
 				len(colors)
 			)
 		for c in colors:
@@ -100,10 +98,8 @@ class Board():
 				header += struct.pack("B",latest_byte)
 				latest_byte = c % (2 ** spillover_size) << (8 - spillover_size)
 				start_bit = spillover_size
-
-			if i == len(color_ids) - 1:
-				header += struct.pack("B",latest_byte)
-		Board.transmit(header, print_payload=True)
+		header += struct.pack("B",latest_byte)
+		Board.transmit(header)
 
 	def end_frame():
 		Board.transmit(struct.pack("BB", 0x00, 0xFF))
@@ -115,9 +111,9 @@ commands = [
 	lambda: Board.send_colors(color_ids = [2, 2, 2, 2], start_point=3),
 	lambda: Board.send_colors(horizontal=False, start_point=20, color_ids = [1, 1, 1, 1]),
 	lambda: Board.end_frame(),
-	lambda: Board.send_colors(color_ids = [1, 1, 1, 1], start_point=3),
-	lambda: Board.send_colors(horizontal=False, start_point=20, color_ids = [2, 2, 2, 2]),
-	lambda: Board.end_frame(),
+	# lambda: Board.send_colors(color_ids = [1, 1, 1, 1], start_point=3),
+	# lambda: Board.send_colors(horizontal=False, start_point=20, color_ids = [2, 2, 2, 2]),
+	# lambda: Board.end_frame(),
 	lambda: time.sleep(7),
 	lambda: Board.toggle_power(False)
 	]
@@ -131,13 +127,13 @@ try:
 		while Board.ser.in_waiting == 0:
 			pass
 		bytes_received = Board.ser.read_all()
-		if len(bytes_received) > 1 or bytes_received[0] != 255:
-			print("\033[0;31mResponse:\033[0;37m")
-			for x in bytes_received:
-				print_bits(x,end=" = ")
-				print(int(x), end=" : ")
-				print(chr(int(x)))
-			print()
+		# if len(bytes_received) > 1 or bytes_received[0] != 255:
+		# 	print("\033[0;31mResponse:\033[0;37m")
+		# 	for x in bytes_received:
+		# 		print_bits(x,end=" = ")
+		# 		print(int(x), end=" : ")
+		# 		print(chr(int(x)))
+		# 	print()
 		if command_num < len(commands):
 			commands[command_num]()
 			command_num += 1

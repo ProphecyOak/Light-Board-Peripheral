@@ -118,7 +118,9 @@ void loop()
     if (op_buffer == 0xFF00)
     {
       __ULong end_of_frame = millis();
-      delay(FRAME_SIZE + frame_start - end_of_frame);
+      __ULong remaining_frame_time = FRAME_SIZE + frame_start - end_of_frame;
+      if (remaining_frame_time > 0)
+        delay(remaining_frame_time);
       strip->show();
     }
     else
