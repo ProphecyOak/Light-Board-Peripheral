@@ -79,7 +79,7 @@ void handle_show_colors()
     if (8 - bit_idx < color_size)
     {
       if (!await_bytes(1))
-        return;
+        break;
       Serial.readBytes(&current_byte, 1);
       int remaining_size = color_size + bit_idx - 8;
       latest_color_id <<= remaining_size;
@@ -103,28 +103,39 @@ void handle_show_colors()
         pixel_idx += pow(-1, up_column);
     }
   }
-  strip->show();
 }
+
+int FPS = 60;
+__ULong FRAME_SIZE = 1000 / FPS;
 
 void loop()
 {
-  delay(1);
+  __ULong frame_start = millis();
   if (await_bytes(2))
   {
     read_op = true;
     int bytesRead = Serial.readBytes((char *)&op_buffer, 2);
-    char op = (*(&op_buffer) & 0b11000000) >> 6;
-    switch (op)
+    if (op_buffer == 0xFF00)
     {
-    case 0:
-      handle_toggle_power();
-      break;
-    case 1:
-      handle_load_palette();
-      break;
-    case 2:
-      handle_show_colors();
-      break;
+      __ULong end_of_frame = millis();
+      delay(FRAME_SIZE + frame_start - end_of_frame);
+      strip->show();
+    }
+    else
+    {
+      char op = (op_buffer & 0b11000000) >> 6;
+      switch (op)
+      {
+      case 0:
+        handle_toggle_power();
+        break;
+      case 1:
+        handle_load_palette();
+        break;
+      case 2:
+        handle_show_colors();
+        break;
+      }
     }
   }
   Serial.write(0xFF);

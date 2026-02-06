@@ -105,12 +105,19 @@ class Board():
 				header += struct.pack("B",latest_byte)
 		Board.transmit(header, print_payload=True)
 
+	def end_frame():
+		Board.transmit(struct.pack("BB", 0x00, 0xFF))
+
 commands = [
 	lambda: Board.toggle_power(),
 	lambda: Board.send_palette(),
 	# lambda: Board.send_colors(color_ids = [2], start_point=600),
 	lambda: Board.send_colors(color_ids = [2, 2, 2, 2], start_point=3),
 	lambda: Board.send_colors(horizontal=False, start_point=20, color_ids = [1, 1, 1, 1]),
+	lambda: Board.end_frame(),
+	lambda: Board.send_colors(color_ids = [1, 1, 1, 1], start_point=3),
+	lambda: Board.send_colors(horizontal=False, start_point=20, color_ids = [2, 2, 2, 2]),
+	lambda: Board.end_frame(),
 	lambda: time.sleep(7),
 	lambda: Board.toggle_power(False)
 	]
@@ -133,13 +140,6 @@ try:
 			print()
 		if command_num < len(commands):
 			commands[command_num]()
-			# while transmitting: pass
-			# a = Thread(target=commands[command_num])
-			# transmitting = True
-			# a.start()
-			# a.join()
-			# transmitting = False
 			command_num += 1
-		# time.sleep(.1)
 except Exception as e:
 	Board.close_port()
