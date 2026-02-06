@@ -25,28 +25,35 @@ int color_size = 0;
 
 uint32_t palette[127];
 
+bool await_bytes(int amnt)
+{
+  __ULong start = millis();
+  while (Serial.available() < amnt)
+  {
+    __ULong now = millis();
+    if (now - start > 1000L)
+      return false;
+  }
+  return true;
+}
+
 void handle_toggle_power()
 {
   strip->clear();
-  if ((*(&op_buffer) & 0b00100000) >> 5)
-  {
-    power_on = true;
-  }
-  else
-  {
-    power_on = false;
-  }
+  power_on = (op_buffer & 0b00100000) >> 5;
   strip->show();
 }
 
 void handle_load_palette()
 {
-  color_size = (op_buffer & 0b00111000) >> 3;
   int palette_size = *((char *)&op_buffer + 1);
   for (int i = 0; i < palette_size; i++)
   {
+    if (!await_bytes(4))
+      return;
     Serial.readBytes((char *)&palette[i], 4);
   }
+  color_size = (op_buffer & 0b00111000) >> 3;
 }
 
 void handle_show_colors()
@@ -60,6 +67,8 @@ void handle_show_colors()
   int pixel_idx = starting_point;
 
   char current_byte = 0;
+  if (!await_bytes(1))
+    return;
   Serial.readBytes(&current_byte, 1);
   int latest_color_id = 0;
   int bit_idx = 0;
@@ -69,6 +78,8 @@ void handle_show_colors()
                        (int)pow(2, min(8 - bit_idx, color_size)) - 1);
     if (8 - bit_idx < color_size)
     {
+      if (!await_bytes(1))
+        return;
       Serial.readBytes(&current_byte, 1);
       int remaining_size = color_size + bit_idx - 8;
       latest_color_id <<= remaining_size;
@@ -89,9 +100,7 @@ void handle_show_colors()
         up_column ^= 0x1;
       }
       else
-      {
         pixel_idx += pow(-1, up_column);
-      }
     }
   }
   strip->show();
@@ -100,7 +109,7 @@ void handle_show_colors()
 void loop()
 {
   delay(1);
-  if (Serial.available() >= 2)
+  if (await_bytes(2))
   {
     read_op = true;
     int bytesRead = Serial.readBytes((char *)&op_buffer, 2);
