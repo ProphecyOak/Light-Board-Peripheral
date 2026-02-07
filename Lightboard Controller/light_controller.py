@@ -14,7 +14,7 @@ class LightController():
 		self._port_opened = False
 		self._color_size = 0
 		self._powered = False
-		self._instruction_queue = queue.Queue()
+		self._instruction_queue = queue.Queue(10)
 		self._transmitting_instructions = False
 	
 	# Open the serial port connection
@@ -55,7 +55,7 @@ class LightController():
 		successful_transmit = self._transmit_data(struct.pack(
 				"BB",
 				# op_code 0 plus 3rd bit for target_state
-				(1 if self._powered else 0) << 5,
+				(1 << 5) if self._powered else 0,
 				# Empty byte to pad out op_buffer
 				0
 			))
@@ -86,7 +86,7 @@ class LightController():
 	
 	# Sends a list of colors to write to the board starting at some point
 	# Returns whether or not the transmission was successful
-	def _send_colors(self, horizontal=True, start_point=0, color_ids=[]):
+	def _send_colors(self, color_ids, horizontal=True, start_point=0):
 		color_ids.append(2 ** self._color_size - 1)
 		header = struct.pack("BB", 
 				(
@@ -124,40 +124,45 @@ class LightController():
 	
 	def queue_instruction(self, instr_id, *args, **kwargs):
 		match instr_id:
-			case 0, "toggle_power":
+			case 0 | "toggle_power":
 				self._instruction_queue.put(lambda: self._toggle_power(*args, **kwargs))
-			case 1, "send_palette":
+			case 1 | "send_palette":
 				self._instruction_queue.put(lambda: self._send_palette(*args, **kwargs))
-			case 2, "send_colors":
+			case 2 | "send_colors":
 				self._instruction_queue.put(lambda: self._send_colors(*args, **kwargs))
-			case 3, "end_frame":
+			case 3 | "end_frame":
 				self._instruction_queue.put(lambda: self._end_frame(*args, **kwargs))
 	
-	def transmit_instructions(self):
-		t = threading.current_thread()
-		while getattr(t, "transmitting", True):
-			next_instruction = self._instruction_queue.get()
-			next_instruction()
-			while self._serial.in_waiting > 0:
-				self._serial.read()
+	def transmit_instructions(self, stop_trigger):
+		while not stop_trigger.is_set():
+			print("BONG")
+			while self._serial.in_waiting == 0:
+				print("BING")
+				time.sleep(.1)
+				pass
+			self._serial.read_all()
+			try:
+				next_instruction = self._instruction_queue.get(block=False)
+				next_instruction()
+				self._instruction_queue.task_done()
+				print("Instruction transmitted")
+			except queue.Empty:
+				pass
 
 myLtCtlr = LightController()
 myLtCtlr.open_port()
-# print("A")
-# instruction_thread = threading.Thread(target=myLtCtlr.transmit_instructions)
-# instruction_thread.daemon = True
-# print("B")
-# instruction_thread.start()
-# print("C")
-# myLtCtlr.queue_instruction(0)
-# myLtCtlr.queue_instruction(1)
-# myLtCtlr.queue_instruction(2, color_ids = [2, 2, 2, 2], start_point=3)
-# print("D")
-# time.sleep(3)
-# myLtCtlr.queue_instruction(0)
-# print("E")
-# instruction_thread.transmitting = False
-# print("F")
-# instruction_thread.join()
+stop_trigger = threading.Event()
+instruction_thread = threading.Thread(target=myLtCtlr.transmit_instructions, args=(stop_trigger,))
+instruction_thread.daemon = True
+instruction_thread.start()
+myLtCtlr.queue_instruction(0)
+myLtCtlr.queue_instruction(1)
+myLtCtlr.queue_instruction(2, color_ids = [2, 2, 2, 2], start_point=3)
+myLtCtlr.queue_instruction(3)
+time.sleep(1)
+myLtCtlr.queue_instruction(0)
+myLtCtlr._instruction_queue.join()
+stop_trigger.set()
+instruction_thread.join()
 myLtCtlr.close_port()
 print("BOOYAH")

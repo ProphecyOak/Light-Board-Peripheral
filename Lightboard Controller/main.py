@@ -118,24 +118,29 @@ commands = [
 	lambda: Board.toggle_power(False)
 	]
 
-command_num = 0
 print("`Ctrl + C` to stop")
-Board.open_port()
-transmitting = False
-try:
-	while True:
-		while Board.ser.in_waiting == 0:
-			pass
-		bytes_received = Board.ser.read_all()
-		# if len(bytes_received) > 1 or bytes_received[0] != 255:
-		# 	print("\033[0;31mResponse:\033[0;37m")
-		# 	for x in bytes_received:
-		# 		print_bits(x,end=" = ")
-		# 		print(int(x), end=" : ")
-		# 		print(chr(int(x)))
-		# 	print()
-		if command_num < len(commands):
-			commands[command_num]()
-			command_num += 1
-except Exception as e:
-	Board.close_port()
+def testTarget():
+	command_num = 0
+	Board.open_port()
+	try:
+		while True:
+			while Board.ser.in_waiting == 0:
+				pass
+			bytes_received = Board.ser.read_all()
+			# if len(bytes_received) > 1 or bytes_received[0] != 255:
+			# 	print("\033[0;31mResponse:\033[0;37m")
+			# 	for x in bytes_received:
+			# 		print_bits(x,end=" = ")
+			# 		print(int(x), end=" : ")
+			# 		print(chr(int(x)))
+			# 	print()
+			if command_num < len(commands):
+				commands[command_num]()
+				command_num += 1
+	except Exception as e:
+		Board.close_port()
+
+a = Thread(target=testTarget)
+a.daemon = True
+a.start()
+a.join()

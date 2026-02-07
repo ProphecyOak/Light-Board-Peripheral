@@ -105,7 +105,7 @@ void handle_show_colors()
   }
 }
 
-int FPS = 60;
+int FPS = 1;
 __ULong FRAME_SIZE = 1000 / FPS;
 
 void loop()
