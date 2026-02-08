@@ -38,6 +38,9 @@ class LightController():
 		if not self._port_opened:
 			raise Exception("Failed to transmit data: Port connection not established.")
 		bytes_written = self._serial.write(data)
+		# for bt in data:
+		# 	print_bits(bt,end="|")
+		# print()
 		return bytes_written == len(data)
 	
 	# Returns the light index from x and y coordinates (0,0 is top left)
@@ -52,12 +55,9 @@ class LightController():
 	# Turns the light monitor on/off
 	# Returns whether or not the transmission was successful
 	def _toggle_power(self):
-		successful_transmit = self._transmit_data(struct.pack(
-				"BB",
-				# op_code 0 plus 3rd bit for target_state
-				(1 << 5) if self._powered else 0,
-				# Empty byte to pad out op_buffer
-				0
+		successful_transmit = self._transmit_data(struct.pack("BB",
+				(0 if self._powered else 1) << 5,
+				0 # Empty OP byte
 			))
 		if not successful_transmit: return False
 		self._powered = not self._powered
@@ -70,11 +70,8 @@ class LightController():
 		if color_size >= 7:
 			raise Exception("Failed to transmit palette: Too many colors.")
 		header = struct.pack("BB",
-				# op_code 1
-				(0b01000000) |
-				# 3 bits for color size
+				(0b01000000) | # OP code 1
 				(color_size) << 3,
-				# number of colors in palette
 				len(colors)
 			)
 		for c in colors:
@@ -135,19 +132,25 @@ class LightController():
 	
 	def transmit_instructions(self, stop_trigger):
 		while not stop_trigger.is_set():
-			print("BONG")
 			while self._serial.in_waiting == 0:
-				print("BING")
-				time.sleep(.1)
 				pass
-			self._serial.read_all()
+			bytes_received = self._serial.read_all()
+			# print("\033[0;31mReceived:\033[0;37m")
+			# for x in bytes_received:
+			# 	print_bits(x,end=".")
+			# print()
 			try:
 				next_instruction = self._instruction_queue.get(block=False)
+				# print("\033[0;31mTransmitting\033[0;37m")
 				next_instruction()
 				self._instruction_queue.task_done()
-				print("Instruction transmitted")
 			except queue.Empty:
 				pass
+
+def print_bits(bt, end="\n"):
+	for x in range(7, -1, -1):
+		print((bt % (2**(x+1))) // (2**x), end="")
+	print(end, end="")
 
 myLtCtlr = LightController()
 myLtCtlr.open_port()
@@ -159,10 +162,9 @@ myLtCtlr.queue_instruction(0)
 myLtCtlr.queue_instruction(1)
 myLtCtlr.queue_instruction(2, color_ids = [2, 2, 2, 2], start_point=3)
 myLtCtlr.queue_instruction(3)
-time.sleep(1)
+time.sleep(3)
 myLtCtlr.queue_instruction(0)
 myLtCtlr._instruction_queue.join()
 stop_trigger.set()
 instruction_thread.join()
 myLtCtlr.close_port()
-print("BOOYAH")

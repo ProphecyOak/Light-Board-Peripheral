@@ -33,16 +33,14 @@ class Board():
 		Board.port_opened = False
 		print("Connection Closed.")
 
-	def transmit(bts, print_payload=False):
+	def transmit(bts, print_payload=True):
 		if not Board.port_opened:
 			Board.open_port()
 		if print_payload:
 			print("\033[0;31mTransmitting\033[0;37m")
-			# for x in bts:
-			# 	print_bits(x,end=" = ")
-			# 	print(int(x))
-			# # print_bytes(bts)
-			# print()
+			for bt in bts:
+				print_bits(bt,end="|")
+			print()
 		
 		Board.ser.write(bts)
 
@@ -114,33 +112,32 @@ commands = [
 	# lambda: Board.send_colors(color_ids = [1, 1, 1, 1], start_point=3),
 	# lambda: Board.send_colors(horizontal=False, start_point=20, color_ids = [2, 2, 2, 2]),
 	# lambda: Board.end_frame(),
-	lambda: time.sleep(7),
+	lambda: time.sleep(1),
 	lambda: Board.toggle_power(False)
 	]
 
 print("`Ctrl + C` to stop")
-def testTarget():
-	command_num = 0
-	Board.open_port()
-	try:
-		while True:
-			while Board.ser.in_waiting == 0:
-				pass
-			bytes_received = Board.ser.read_all()
-			# if len(bytes_received) > 1 or bytes_received[0] != 255:
-			# 	print("\033[0;31mResponse:\033[0;37m")
-			# 	for x in bytes_received:
-			# 		print_bits(x,end=" = ")
-			# 		print(int(x), end=" : ")
-			# 		print(chr(int(x)))
-			# 	print()
-			if command_num < len(commands):
-				commands[command_num]()
-				command_num += 1
-	except Exception as e:
-		Board.close_port()
-
-a = Thread(target=testTarget)
-a.daemon = True
-a.start()
-a.join()
+command_num = 0
+Board.open_port()
+try:
+	while True:
+		while Board.ser.in_waiting == 0:
+			pass
+		bytes_received = Board.ser.read_all()
+		# for x in bytes_received:
+		# 	print_bits(x,end=".")
+		# print()
+		# if len(bytes_received) > 1 or bytes_received[0] != 255:
+		# 	print("\033[0;31mResponse:\033[0;37m")
+		# 	for x in bytes_received:
+		# 		print_bits(x,end=" = ")
+		# 		print(int(x), end=" : ")
+		# 		print(chr(int(x)))
+		# 	print()
+		if command_num < len(commands):
+			commands[command_num]()
+			command_num += 1
+		else:
+			break
+except Exception as e:
+	Board.close_port()
