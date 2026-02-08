@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 
-#define LED_BRIGHTNESS 40
+#define LED_BRIGHTNESS 100
 
 Adafruit_NeoPixel *strip = new Adafruit_NeoPixel(700, 6, NEO_GRB + NEO_KHZ800);
 
@@ -105,12 +105,12 @@ void handle_show_colors()
   }
 }
 
-int FPS = 1;
+int FPS = 60;
 __ULong FRAME_SIZE = 1000 / FPS;
+__ULong frame_start = 0;
 
 void loop()
 {
-  __ULong frame_start = millis();
   if (await_bytes(2))
   {
     read_op = true;
@@ -122,6 +122,7 @@ void loop()
       if (remaining_frame_time > 0)
         delay(remaining_frame_time);
       strip->show();
+      frame_start = millis();
     }
     else
     {
