@@ -1,10 +1,14 @@
 import time
+from pynput import keyboard
 from light_controller import LightController
 
-with LightController() as myLtCtlr:
-	myLtCtlr.toggle_power()
-	myLtCtlr.send_palette()
-	myLtCtlr.send_colors([2, 2, 2, 2], start_point=3)
-	myLtCtlr.end_frame()
-	time.sleep(1)
-	myLtCtlr.toggle_power()
+def frame(light_board, key_listener):
+	pass
+
+game_over = False
+with LightController() as light_board, keyboard.Listener() as key_listener:
+	light_board.toggle_power()
+	light_board.send_palette()
+	while not game_over:
+		game_over = frame(light_board, key_listener)
+	light_board.toggle_power()
