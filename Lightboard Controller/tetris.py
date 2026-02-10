@@ -12,7 +12,7 @@ class Tetris_Game():
 			Tile([[0,0,0,0],[0,0,0,0],[2,2,2,2],[0,0,0,0]]), # I
 			Tile([[3,0,0],[3,3,3],[0,0,0]]), # J
 			Tile([[0,0,4],[4,4,4],[0,0,0]]), # L
-			Tile([[0,5,5],[0,5,5],[0,0,0]]), # O
+			Tile([[0,5,5],[0,5,5],[0,0,0]],dont_rotate=True), # O
 			Tile([[0,6,6],[6,6,0],[0,0,0]]), # S
 			Tile([[0,7,0],[7,7,7],[0,0,0]]), # T
 			Tile([[8,8,0],[0,8,8],[0,0,0]]), # Z
@@ -68,18 +68,28 @@ class Tetris_Game():
 					return
 		self.tile_position[0] += direction
 	
+	def rotate_tile(self, direction=1):
+		self.current_tile.rotate(direction)
+	
 	def step_frame(self):
 		if self.active:
 			self.lower_tile()
 
 class Tile():
-	def __init__(self, profile):
+	def __init__(self, profile, dont_rotate=False):
 		self.initial = profile
+		self.rotatable = not dont_rotate
 		self.profile = [[x for x in y] for y in self.initial]
 		self.width = len(self.initial[0])
 		self.height = len(self.initial)
 
 	def rotate(self, direction):
-		for x in range(direction % 4):
-			self.profile = [[y for y in row] for row in zip(*self.profile)]
+		#TODO CHECK THAT IT WONT RUN INTO STUFF
+		#TODO ALSO FIGURE OUT THE DEAL WITH WALL KICKS ETC (SRS)
+		if self.rotatable:
+			new_profile = []
+			for x in range(direction % 4):
+				#TODO ACTUALLY MAKE THIS GO THE RIGHT DIRECTION OR SOMETHING?
+				new_profile = [[y for y in list(row)[::-1]] for row in zip(*self.profile)]
+			self.profile = new_profile
 		return self

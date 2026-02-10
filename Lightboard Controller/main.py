@@ -49,13 +49,21 @@ def loop(light_board):
 def on_key_up(key):
 	pass
 
+last_input = time.time()
 def on_key_down(key, light_board):
+	global start_time
+	# if time.time() - start_time < .1: return
 	match key.char:
 		case "a":
 			my_tetris_game.translate_tile(-1)
 		case "d":
 			my_tetris_game.translate_tile(1)
+		case "q":
+			my_tetris_game.rotate_tile(-1)
+		case "e":
+			my_tetris_game.rotate_tile(1)
 	light_board.end_frame()
+	last_input = time.time()
 
 def test_send(light_board):
 	light_board.send_colors([1,1,1,1],start_point=172)
