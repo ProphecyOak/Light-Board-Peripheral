@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 
-#define LED_BRIGHTNESS 100
+#define LED_BRIGHTNESS 20
 
 Adafruit_NeoPixel *strip = new Adafruit_NeoPixel(700, 6, NEO_GRB + NEO_KHZ800);
 
@@ -62,7 +62,7 @@ void handle_show_colors()
   uint16_t starting_point = (op_buffer & 0xFF % 4) * 256 + (op_buffer >> 8 & 0xFF);
 
   int start_x = starting_point / 35;
-  bool up_column = start_x % 2 == 1;
+  bool up_column = !horizontal & starting_point % 2;
   int lights_from_edge = starting_point - 35 * start_x;
   int pixel_idx = starting_point;
 
@@ -119,8 +119,8 @@ void loop()
     {
       __ULong end_of_frame = millis();
       __ULong remaining_frame_time = FRAME_SIZE + frame_start - end_of_frame;
-      if (remaining_frame_time > 0)
-        delay(remaining_frame_time);
+      // if (remaining_frame_time > 0)
+      //   delay(remaining_frame_time);
       strip->show();
       frame_start = millis();
     }

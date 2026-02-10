@@ -43,15 +43,6 @@ class LightController():
 		# print()
 		return bytes_written == len(data)
 	
-	# Returns the light index from x and y coordinates (0,0 is top left)
-	def xy_to_i(self, xy):
-		x, y = xy
-		x %= 20
-		y %= 35
-		i = (x + x % 2) * 35 - x % 2 + y * (-1) ** (x%2)
-		# print(f"Converting ({x}, {y}) to {i}")
-		return i
-	
 	# Turns the light monitor on/off
 	# Returns whether or not the transmission was successful
 	def toggle_power(self):
@@ -79,7 +70,8 @@ class LightController():
 	
 	# Sends a list of colors to write to the board starting at some point
 	# Returns whether or not the transmission was successful
-	def send_colors(self, color_ids, horizontal=True, start_point=0):
+	def send_colors(self, _color_ids, horizontal=True, start_point=0):
+		color_ids = list(_color_ids)
 		color_ids.append(2 ** self._color_size - 1)
 		header = struct.pack("BB", 
 				(
